@@ -1,0 +1,88 @@
+version: "3.5"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics ping -q
+  postgres-db:
+    container_name: postgres-db
+    image: postgres:13
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./postgres-db/data:/var/lib/postgresql/data
+  mysql:
+    container_name: mysql-db
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: default   
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql-db:/var/lib/mysql
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.2
+    container_name: elastic
+    environment:
+      discovery.type: "single-node"      
+      ES_JAVA_OPTS: "-Xms512m -Xmx2g"
+      xpack.profiling.enabled: "true"      
+      xpack.security.enabled: "false"
+    ports:
+      - "9200:9200"
+      - "9300:9300"        
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.2
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elastic:9200
+  mongo-db:
+    container_name: mongo-db
+    image: mongodb/mongodb-community-server
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    ports:
+      - '27017:27017'
+    volumes:
+      - ./mongo-db:/data/db    
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    ports:
+      - 8081:8081
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo-db
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=root
+      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+  redis:
+    image: redis:7.2
+    container_name: redis    
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis_db:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander    
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
